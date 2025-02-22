@@ -63,6 +63,7 @@ let b = 0;
 let clickCount = 0;
 let svgImage;
 let svgImage2;
+let opacityPointLabels = 256;
 
 function setup() {
   createCanvas(900, 900);
@@ -102,7 +103,16 @@ function draw() {
   if (clickCount >= 5) {
     displayHint();
   }
+  if (clickCount >= 10) {
+    if (opacityPointLabels > 0) {
+      opacityPointLabels -= 2;
+    }
+  }
+  
+   
 }
+
+
 
 function mousePressed() {
   const isInsideCanvas = mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height;
@@ -128,6 +138,8 @@ function mousePressed() {
     let dataPoint = canvasToData(mouseX, mouseY);
     addAndAnimatePredictedPoint(dataPoint.x);
   }
+  
+
 }
 
 function generateBaseRelationship(x) {
@@ -187,8 +199,10 @@ function drawPoints() {
       textSize(12);
       noStroke();
       textFont(fontSourceSansProRegular);
-      fill(siggan_style.colors.text80); // 20% grey
+      
       textAlign(CENTER, TOP);
+      // use opacity of from variable opacityPointLabels
+      fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2],opacityPointLabels);
       text(`y: ${pt.y.toFixed(0)} cm\nx: ${pt.x.toFixed(0)} år`, canvasPoint.x, canvasPoint.y + 10);
     }
     // Draw SVG image
@@ -215,7 +229,10 @@ function drawAnimatedPredictedPoints() {
       textSize(12);
       noStroke();
       textFont(fontSourceSansProRegular);
-      fill(siggan_style.colors.text80); // 20% grey
+      // use opacity of from variable opacityPointLabels
+      /* fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2], opacityPointLabels
+      ); */
+      fill(siggan_style.colors.text80);
       textAlign(CENTER, TOP);
       // Check if it has reach final position
       const isAnimating = pt.progress < 1;
