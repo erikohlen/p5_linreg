@@ -7,17 +7,15 @@ function preload() {
 }
 
 // Data config
-const minX = 0;
-const maxX = 100;
-const minY = 0;
-const maxY = 200;
-const x_axis_label = "Ålder (år)";
-const y_axis_label = "Längd (cm)";
+
+const x_axis_label = "X";
+const y_axis_label = "y";
 const initialMessage = "Klicka här";
-const orangeBeanHintText = "Ny böna upplåst. \n Klicka här under x-axeln för att predicera"; 
 const noise_factor = 1.2; // Adjusted noise factor
 
 // UI config
+const canvasWidth = 1000;
+const canvasHeight = 800;
 const showDataPointValues = true;
 const showDataPointImage = false;
 const showDataPointSimplePoint = true;
@@ -54,6 +52,10 @@ const siggan_style = {
 };
 
 // Data generation
+let minX = 0;
+let maxX = 100;
+let minY = 0;
+let maxY = 200;
 let heldaneFont;
 let data_points = [];
 let predicted_data_points = [];
@@ -67,7 +69,7 @@ let opacityPointLabels = 256;
 let correlation = 0;
 
 function setup() {
-  createCanvas(900, 900);
+  createCanvas(canvasWidth, canvasHeight);
   background(siggan_style.colors.backgroundBeige);
   let text80 = color(siggan_style.colors.text);
   text80.setAlpha(150);
@@ -227,7 +229,7 @@ function drawPoints() {
       textAlign(CENTER, TOP);
       // use opacity of from variable opacityPointLabels
       fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2],opacityPointLabels);
-      text(`y: ${pt.y.toFixed(0)} cm\nx: ${pt.x.toFixed(0)} år`, canvasPoint.x, canvasPoint.y + 10);
+      text(`y: ${pt.y.toFixed(0)}\nX: ${pt.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 10);
     }
     // Draw SVG image
     imageMode(CENTER, CENTER);
@@ -267,11 +269,11 @@ function drawAnimatedPredictedPoints() {
       const isAnimating = pt.progress < 1;
       if (isAnimating) {
         textSize(12);
-        text(`y: ?  \nx: ${pt.point.x.toFixed(0)} år`, canvasPoint.x, currentY + 10);
+        text(`y: ?  \nx: ${pt.point.x.toFixed(0)}`, canvasPoint.x, currentY + 10);
       }
       if (!isAnimating) {
         textSize(12);
-        text(`y: ${pt.point.y.toFixed(0)} cm\nx: ${pt.point.x.toFixed(0)} år`, canvasPoint.x, canvasPoint.y + 10);
+        text(`y: ${pt.point.y.toFixed(0)}\nx: ${pt.point.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 10);
       }
     }
     // Draw SVG image
@@ -409,8 +411,8 @@ function displayEquation() {
   textSize(24);
   textFont(heldaneFont);
   textAlign(LEFT);
-  let y_pos = 30;
-  let x_pos = 80;
+  let y_pos = top_margin_chart;
+  let x_pos = left_margin_chart + 20;
   let vMargin = 30;
   text(`y = mX + b`, x_pos, y_pos);
   text(`m = ${m.toFixed(2)}`, x_pos, y_pos + vMargin * 1);
@@ -488,24 +490,27 @@ function drawHintArrow() {
 }
 
 function displayHint() {
-  // Display orange bean
   
-  
-  if (frameCount % 30 < 15) { // Blink every quarter second
-    fill(siggan_style.colors.text);  
-  }
+ 
 
   // Display hint text
   textAlign(CENTER, CENTER);
     textSize(20);
     textFont(heldaneFont); // Use the Heldane Display font
-    fill(siggan_style.colors.line);
-    text("Klicka här under x-axeln för att predicera y-värden" , width / 2, height - (bottom_margin_chart / 2));
+    let textColor = siggan_style.colors.line;
+    fill(textColor);
+    if (frameCount % 30 < 15 && predicted_data_points.length < 2) { // Blink every quarter second
+      fill(siggan_style.colors.text);  
+      
+    }
+    //text.Color.setAlpha(256);
+    textAlign(CENTER, TOP);
+    text("Klicka här under x-axeln för att predicera y-värden" , width / 2, height - bottom_margin_chart + 45) ;
 }
 
 function drawAxes() {
   textFont(heldaneFont);
-  textSize(16);
+  textSize(20);
   stroke(150);
   strokeWeight(1);
   line(left_margin_chart, top_margin_chart, left_margin_chart, height - bottom_margin_chart); // y-axis
@@ -513,9 +518,9 @@ function drawAxes() {
 
   fill(siggan_style.colors.text80);
   noStroke();
-  textAlign(CENTER);
+  textAlign(CENTER, BOTTOM);
   push();
-  translate(25, height / 2);
+  translate(left_margin_chart - 10, height / 2);
   rotate(-HALF_PI);
   text(y_axis_label, 0, 0);
   pop();
@@ -570,6 +575,12 @@ function handleFileSelect(file) {
 function parseCSVData(csvData) {
   const rows = csvData.split('\n');
   data_points = []; // Clear existing data points
+
+  let newMinX = Infinity;
+  let newMaxX = -Infinity;
+  let newMinY = Infinity;
+  let newMaxY = -Infinity;
+
   for (let row of rows) {
     const cols = row.split(',');
     if (cols.length === 2) {
@@ -577,8 +588,19 @@ function parseCSVData(csvData) {
       const y = parseFloat(cols[1]);
       if (!isNaN(x) && !isNaN(y)) {
         data_points.push(createVector(x, y));
+        if (x < newMinX) newMinX = x;
+        if (x > newMaxX) newMaxX = x;
+        if (y < newMinY) newMinY = y;
+        if (y > newMaxY) newMaxY = y;
       }
     }
   }
+
+  // Update global min and max values
+  minX = newMinX;
+  maxX = newMaxX;
+  minY = newMinY;
+  maxY = newMaxY;
+
   redraw();
 }
