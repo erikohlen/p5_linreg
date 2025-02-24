@@ -64,6 +64,7 @@ let clickCount = 0;
 let svgImage;
 let svgImage2;
 let opacityPointLabels = 256;
+let correlation = 0;
 
 function setup() {
   createCanvas(900, 900);
@@ -320,6 +321,17 @@ function linearRegression() {
   }
   m = num / den;
   b = ymean - m * xmean;
+
+  // Calculate Pearson correlation coefficient
+  let xysum = 0;
+  let xsqsum = 0;
+  let ysqsum = 0;
+  for (let pt of data_points) {
+    xysum += (pt.x - xmean) * (pt.y - ymean);
+    xsqsum += Math.pow(pt.x - xmean, 2);
+    ysqsum += Math.pow(pt.y - ymean, 2);
+  }
+  correlation = xysum / Math.sqrt(xsqsum * ysqsum);
 }
 
 function calculateCorrelation() {
@@ -403,9 +415,10 @@ function displayEquation() {
   let y_pos = 30;
   let x_pos = 80;
   let vMargin = 30;
-  text(`y = mX+b`, x_pos, y_pos);
+  text(`y = mX + b`, x_pos, y_pos);
   text(`m = ${m.toFixed(2)}`, x_pos, y_pos + vMargin * 1);
   text(`b = ${b.toFixed(2)}`, x_pos, y_pos + vMargin * 2);
+  text(`r = ${correlation.toFixed(2)}`, x_pos, y_pos + vMargin * 3); // Display the Pearson correlation coefficient
 }
 
 function displayInstructions() {
