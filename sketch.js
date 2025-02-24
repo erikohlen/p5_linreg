@@ -1,15 +1,15 @@
+const devMode = false;
 
 function preload() {
   // Load the Heldane Display font
   heldaneFont = loadFont('assets/HeldaneDisplay-Regular.ttf');
   fontSourceSansProRegular = loadFont('assets/SourceSansPro-Regular.ttf');
 }
-const devMode = false;
 
 // Data config
-const minX = 18;
+const minX = 0;
 const maxX = 100;
-const minY = 100;
+const minY = 0;
 const maxY = 200;
 const x_axis_label = "Ålder (år)";
 const y_axis_label = "Längd (cm)";
@@ -77,11 +77,12 @@ function setup() {
   svgImage = loadImage('assets/johnny.svg');
   svgImage2 = loadImage('assets/johnny_orange.svg');
 
+
   // Add two random points for testing the linear regression
   if (devMode) {
-    //data_points.push(createVector(40, 120));
-    // data_points.push(createVector(76, 167));
-    // update line to match the two points
+    data_points.push(createVector(40, 120));
+    data_points.push(createVector(76, 167));
+    
 
 
   }
@@ -343,18 +344,50 @@ function calculateCorrelation() {
 }
 
 function drawLine() {
+  
   let x1 = minX;
   let y1 = m * x1 + b;
   let x2 = maxX;
   let y2 = m * x2 + b;
   let canvasPoint1 = dataToCanvas(x1, y1);
   let canvasPoint2 = dataToCanvas(x2, y2);
-  // Clamp to chart area  
-  canvasPoint1.x = constrain(canvasPoint1.x, left_margin_chart, width - right_margin_chart);
-  canvasPoint1.y = constrain(canvasPoint1.y, top_margin_chart, height - bottom_margin_chart);
-  canvasPoint2.x = constrain(canvasPoint2.x, left_margin_chart, width - right_margin_chart);
-  canvasPoint2.y = constrain(canvasPoint2.y, top_margin_chart, height - bottom_margin_chart);
+ 
   
+  // If x or y is outside chart,  calculate  new point were line intercepts chart area to keep within chart
+  if (y1 > maxY) {
+    canvasPoint1 = dataToCanvas((maxY - b) / m, maxY);
+    
+  }
+  if (y1 < minY) {
+    canvasPoint1 = dataToCanvas((minY - b) / m, minY);
+  }
+  if (y2 > maxY) {
+    canvasPoint2 = dataToCanvas((maxY - b) / m, maxY);
+  }
+  if (y2 < minY) {
+    canvasPoint2 = dataToCanvas((minY - b) / m, minY);
+  }
+
+  
+    if(devMode) {
+    fill(0,0,256)
+
+  
+    strokeWeight(8);
+    stroke(0);
+    point(canvasPoint1.x, canvasPoint1.y); // Start point
+    stroke(0, 255, 0);
+    point(canvasPoint2.x, canvasPoint2.y); // End point
+    stroke(0, 0, 255);
+    point(dataToCanvas(minX, minY)); // minX and minY
+    point(dataToCanvas(maxX, maxY)); // maxX and maxY
+    }
+
+
+  
+
+
+
   // Draw
   stroke(siggan_style.colors.line);
   strokeWeight(2);
@@ -500,8 +533,8 @@ function wrapText(text, maxWidth) {
 }
 
 function dataToCanvas(x, y) {
-  let x_pos = map(x, minX, maxX, 50, width - 50);
-  let y_pos = map(y, minY, maxY, height - 50, 50);
+  let x_pos = map(x, minX, maxX, left_margin_chart, width - right_margin_chart);
+  let y_pos = map(y, minY, maxY, height - bottom_margin_chart, top_margin_chart);
   return createVector(x_pos, y_pos);
 }
 
