@@ -4,7 +4,7 @@ function preload() {
   heldaneFont = loadFont('assets/HeldaneDisplay-Regular.ttf');
   fontSourceSansProRegular = loadFont('assets/SourceSansPro-Regular.ttf');
 }
-const devMode = true;
+const devMode = false;
 
 // Data config
 const minX = 18;
@@ -139,7 +139,7 @@ function mousePressed() {
     clickCount++;
     redraw();
   }
-  if (isBelowXAxis) {
+  if (isBelowXAxis && data_points.length >= 2) {
     // Add and animate a predicted point if the user clicks below the x-axis
     console.log("Clicked below x-axis");
     let dataPoint = canvasToData(mouseX, mouseY);
@@ -236,9 +236,9 @@ function drawPoints() {
   }
 }
 
-function easeOut(t, easing = 2) {
-  return 1- Math.pow(1-t, easing);
-}
+easeOut = function(t, easeAmount) {
+  return 1 - Math.pow(1 - t, easeAmount);
+};
 
 function drawAnimatedPredictedPoints() {
   for (let i = predicted_data_points.length - 1; i >= 0; i--) {
@@ -246,7 +246,7 @@ function drawAnimatedPredictedPoints() {
     let canvasPoint = dataToCanvas(pt.point.x, pt.point.y);
     let targetY = canvasPoint.y;
     let startY = height - 50; // Start below the x-axis
-    let easedProgress = easeOut(pt.progress,2);
+    let easedProgress = easeOut(pt.progress,3);
     let currentY = lerp(startY, targetY, easedProgress);
     strokeWeight(8);
     stroke(0);
@@ -393,7 +393,10 @@ function drawHintArrow() {
   console.log("drawHintArrow");
   
 
-  // display curved arrow around 70% of width and a little above the x-axis, pointing as a hint down to click below x-axis
+ 
+
+  if(devMode) {
+     // display curved arrow around 70% of width and a little above the x-axis, pointing as a hint down to click below x-axis
   // use a bezier curve to draw the arrow
   let x1 = width * 0.7;
   let y1 = height - 50;
@@ -403,8 +406,6 @@ function drawHintArrow() {
   let y3 = height - 50 + 20;
   let x4 = width * 0.7;
   let y4 = height - 50 + 40;
-
-  if(devMode) {
 
    // Draw the start point in black, end point in green and control points in red
   strokeWeight(8);
