@@ -228,7 +228,7 @@ function drawAnimatedPredictedPoints() {
     let canvasPoint = dataToCanvas(pt.point.x, pt.point.y);
     let targetY = canvasPoint.y;
     let startY = height - 50; // Start below the x-axis
-    let easedProgress = easeOut(pt.progress,4);
+    let easedProgress = easeOut(pt.progress,2);
     let currentY = lerp(startY, targetY, easedProgress);
     strokeWeight(8);
     stroke(0);
