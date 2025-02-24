@@ -4,7 +4,7 @@ function preload() {
   heldaneFont = loadFont('assets/HeldaneDisplay-Regular.ttf');
   fontSourceSansProRegular = loadFont('assets/SourceSansPro-Regular.ttf');
 }
-const devMode = false;
+const devMode = true;
 
 // Data config
 const minX = 18;
@@ -79,11 +79,13 @@ function setup() {
 
   // Add two random points for testing the linear regression
   if (devMode) {
-    data_points.push(createVector(40, 120));
-    data_points.push(createVector(76, 167));
-    drawHintArrow();
-  }
+    //data_points.push(createVector(40, 120));
+    // data_points.push(createVector(76, 167));
+    // update line to match the two points
 
+
+  }
+  
   redraw();
 }
 
@@ -108,6 +110,10 @@ function draw() {
     if (opacityPointLabels > 0) {
       opacityPointLabels -= 2;
     }
+  }
+
+  if(devMode) {
+    drawHintArrow();
   }
   
    
@@ -367,6 +373,7 @@ function displayInitialMessage() {
 
 function drawHintArrow() {
   console.log("drawHintArrow");
+  
 
   // display curved arrow around 70% of width and a little above the x-axis, pointing as a hint down to click below x-axis
   // use a bezier curve to draw the arrow
@@ -378,6 +385,26 @@ function drawHintArrow() {
   let y3 = height - 50 + 20;
   let x4 = width * 0.7;
   let y4 = height - 50 + 40;
+
+  if(devMode) {
+
+   // Draw the start point in black, end point in green and control points in red
+  strokeWeight(8);
+  stroke(0);
+  point(x1, y1);
+  stroke(0, 255, 0);
+  point(x4, y4);
+  stroke(255, 0, 0);
+  point(x2, y2);
+  point(x3, y3);
+  cd
+  
+  
+
+
+    
+  }
+  // draw the arrow
   stroke(siggan_style.colors.line);
   strokeWeight(2);
   noFill();
@@ -387,6 +414,14 @@ function drawHintArrow() {
   let angle = PI / 6;
   let x5 = x4 + arrowSize * cos(angle);
   let y5 = y4 + arrowSize * sin(angle);
+  let x6 = x4 - arrowSize * cos(angle);
+  let y6 = y4 + arrowSize * sin(angle);
+  stroke(siggan_style.colors.line);
+  strokeWeight(2);
+  line(x4, y4, x5, y5);
+  line(x4, y4, x6, y6);
+
+
 }
 
 function displayHint() {
