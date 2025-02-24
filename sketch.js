@@ -173,18 +173,36 @@ function calculateStandardDeviation(data, mean) {
   return Math.sqrt(sum / data.length);
 }
 
+function estimateStandardDeviation() {
+  if (data_points.length < 2) {
+      return 0; // Not enough data to estimate noise
+  }
+
+  let residuals = [];
+  
+  for (let pt of data_points) {
+      let predictedY = generateBaseRelationship(pt.x); // Get predicted Y using regression
+      let residual = pt.y - predictedY; // Calculate residual
+      residuals.push(residual);
+  }
+
+  let sumOfSquares = 0;
+  for (let res of residuals) {
+      sumOfSquares += Math.pow(res, 2);
+  }
+  
+  // Unbiased estimator: divide by (n - 1)
+  let variance = sumOfSquares / (residuals.length - 1);
+  
+  return Math.sqrt(variance);
+}
+
 function addAndAnimatePredictedPoint(x) {
-  let baseY = generateBaseRelationship(x);
-  let correlation = calculateCorrelation();
-
-  // Calculate mean and standard deviation of the existing data points
-  let yValues = data_points.map(pt => pt.y);
-  let meanY = calculateMean(yValues);
-  let stdDevY = calculateStandardDeviation(yValues, meanY);
-
-  let noise = generateNoise(meanY, stdDevY);
-  let y = correlation * baseY + (1 - correlation) * noise;
-  let dataPoint = createVector(x, y);
+  let Ybase = generateBaseRelationship(x);
+  let std = estimateStandardDeviation();
+  let eps = generateNoise(0, std);
+  let Ysampled = Ybase + eps;
+  let dataPoint = createVector(x, Ysampled);
   predicted_data_points.push({ point: dataPoint, progress: 0 });
   console.log(`Added predicted point: (${dataPoint.x}, ${dataPoint.y}) with noise: ${noise}`);
   clickCount++;
@@ -490,4 +508,3 @@ function canvasToData(x_pos, y_pos) {
   let y = map(y_pos, height - 50, 50, minY, maxY);
   return createVector(x, y);
 }
-
