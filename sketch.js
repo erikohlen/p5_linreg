@@ -1,10 +1,10 @@
-let heldaneFont;
 
 function preload() {
   // Load the Heldane Display font
   heldaneFont = loadFont('assets/HeldaneDisplay-Regular.ttf');
   fontSourceSansProRegular = loadFont('assets/SourceSansPro-Regular.ttf');
 }
+const devMode = false;
 
 // Data config
 const minX = 18;
@@ -21,7 +21,6 @@ const noise_factor = 1.2; // Adjusted noise factor
 const showDataPointValues = true;
 const showDataPointImage = false;
 const showDataPointSimplePoint = true;
-const devMode = false;
 const usePredictedPoints = true;
 const predictedPointAnimationSpeed = 0.02;
 const predictedPointDelayBeforeAnimation = 2;
@@ -55,6 +54,7 @@ const siggan_style = {
 };
 
 // Data generation
+let heldaneFont;
 let data_points = [];
 let predicted_data_points = [];
 let old_predicted_data_points = [];
@@ -81,6 +81,7 @@ function setup() {
   if (devMode) {
     data_points.push(createVector(40, 120));
     data_points.push(createVector(76, 167));
+    drawHintArrow();
   }
 
   redraw();
@@ -211,13 +212,18 @@ function drawPoints() {
   }
 }
 
+function easeOut(t, easing = 2) {
+  return 1- Math.pow(1-t, easing);
+}
+
 function drawAnimatedPredictedPoints() {
   for (let i = predicted_data_points.length - 1; i >= 0; i--) {
     let pt = predicted_data_points[i];
     let canvasPoint = dataToCanvas(pt.point.x, pt.point.y);
     let targetY = canvasPoint.y;
     let startY = height - 50; // Start below the x-axis
-    let currentY = lerp(startY, targetY, pt.progress);
+    let easedProgress = easeOut(pt.progress,4);
+    let currentY = lerp(startY, targetY, easedProgress);
     strokeWeight(8);
     stroke(0);
     // Draw simple point
@@ -230,14 +236,14 @@ function drawAnimatedPredictedPoints() {
       noStroke();
       textFont(fontSourceSansProRegular);
       // use opacity of from variable opacityPointLabels
-      /* fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2], opacityPointLabels
-      ); */
-      fill(siggan_style.colors.text80);
+      let numPredicted = predicted_data_points.length;
+      let opacityPredicted = numPredicted > 20 ? 256 - (2.56 * (numPredicted - 20)) : 256;
+      fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2], opacityPredicted);
       textAlign(CENTER, TOP);
-      // Check if it has reach final position
+      // Check if it has reached final position
       const isAnimating = pt.progress < 1;
       if (isAnimating) {
-        textSize(12)
+        textSize(12);
         text(`y: ?  \nx: ${pt.point.x.toFixed(0)} år`, canvasPoint.x, currentY + 10);
       }
       if (!isAnimating) {
@@ -247,7 +253,7 @@ function drawAnimatedPredictedPoints() {
     }
     // Draw SVG image
     imageMode(CENTER, CENTER);
-    image(svgImage2, canvasPoint.x, currentY , 32, 32); // Adjust the position as needed
+    image(svgImage2, canvasPoint.x, currentY, 32, 32); // Adjust the position as needed
     pt.progress += predictedPointAnimationSpeed; // Adjust the speed of the animation
     if (pt.progress >= 1) {
       pt.progress = 1; // Ensure the progress does not exceed 1
@@ -359,14 +365,39 @@ function displayInitialMessage() {
   text(initialMessage, width / 2, height / 2);
 }
 
+function drawHintArrow() {
+  console.log("drawHintArrow");
+
+  // display curved arrow around 70% of width and a little above the x-axis, pointing as a hint down to click below x-axis
+  // use a bezier curve to draw the arrow
+  let x1 = width * 0.7;
+  let y1 = height - 50;
+  let x2 = width * 0.7 + 20;
+  let y2 = height - 50 + 20;
+  let x3 = width * 0.7 - 20;
+  let y3 = height - 50 + 20;
+  let x4 = width * 0.7;
+  let y4 = height - 50 + 40;
+  stroke(siggan_style.colors.line);
+  strokeWeight(2);
+  noFill();
+  bezier(x1, y1, x2, y2, x3, y3, x4, y4);
+  // draw the arrow head
+  let arrowSize = 10;
+  let angle = PI / 6;
+  let x5 = x4 + arrowSize * cos(angle);
+  let y5 = y4 + arrowSize * sin(angle);
+}
+
 function displayHint() {
   // Display orange bean
-  imageMode(CENTER, CENTER);
-  //image(svgImage2, left_margin_chart + 32, height - (bottom_margin_chart / 2) , 32, 32); // Adjust the position as needed
+  
+  
   if (frameCount % 30 < 15) { // Blink every quarter second
-    fill(siggan_style.colors.text);
-    
+    fill(siggan_style.colors.text);  
   }
+
+  // Display hint text
   textAlign(CENTER, CENTER);
     textSize(20);
     textFont(heldaneFont); // Use the Heldane Display font
