@@ -16,9 +16,11 @@ const noise_factor = 1.2; // Adjusted noise factor
 // UI config
 const canvasWidth = 1000;
 const canvasHeight = 800;
-const showDataPointValues = false;
-const showValuesOnHover = false;
+const allwaysShowPointLabels = false;
+const showPointLabelsOnHover = false;
+const showAllPointLabelsOnHover = true;
 const showDataPointImage = false;
+const autoHidePointLabelsAfterAwhile = false;
 const showDataPointSimplePoint = false;
 const usePredictedPoints = true;
 const predictedPointAnimationSpeed = 0.02;
@@ -70,8 +72,9 @@ let svgImage;
 let svgImage2;
 let opacityPointLabels = 256;
 let correlation = 0;
-let hoverDelayFrames = 60;
-let hoverDelayCounter = 0;
+let hoverDelayFrames = 20;
+let hoverDelayFrameCounter = 0;
+let wasAnyPointHoveredThisFrame = false;
 
 
 function setup() {
@@ -103,11 +106,21 @@ function setup() {
 function draw() {
   background(siggan_style.colors.backgroundBeige);
   drawAxes();
+  wasAnyPointHoveredThisFrame = false;
+  points_with_labels_to_display = [];
   drawPoints();
   drawAnimatedPredictedPoints();
   drawOldPredictedPoints();
-  drawPointLabels();
-  
+  if (wasAnyPointHoveredThisFrame) {
+    hoverDelayFrameCounter++;
+    if (hoverDelayFrameCounter >= hoverDelayFrames) {
+      drawPointLabels();
+      
+    }
+  } else {
+    hoverDelayFrameCounter = 0;
+  }
+  wasAnyPointHoveredThisFrame = false;
 
   
   if (data_points.length === 0) {
@@ -121,7 +134,7 @@ function draw() {
   if (clickCount >= 5) {
     displayHint();
   }
-  if (clickCount >= 10 && !showValuesOnHover) {
+  if (clickCount >= 10 && autoHidePointLabelsAfterAwhile) {
     if (opacityPointLabels > 0) {
       opacityPointLabels -= 2;
     }
@@ -129,13 +142,11 @@ function draw() {
   if(devMode) {
     drawHintArrow();
   }
-  if (hoverDelayCounter < hoverDelayFrames ) {
-    hoverDelayCounter++;
-  }
+
 }
 
 function mousePressed() {
-  const isInsideCanvas = mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height;
+  
   const isInsideChart = mouseX > left_margin_chart && mouseX < width - right_margin_chart && mouseY > top_margin_chart && mouseY < height - bottom_margin_chart;
   const isBelowXAxis = mouseY > height - bottom_margin_chart && mouseY < height && mouseX > left_margin_chart && mouseX < width - right_margin_chart;
 
@@ -143,7 +154,6 @@ function mousePressed() {
     // Add a regular point
     let dataPoint = canvasToData(mouseX, mouseY);
     data_points.push(dataPoint);
-    console.log(`Added point: (${dataPoint.x}, ${dataPoint.y})`);
 
     // Move predicted points to old predicted points and set their opacity to 42%
     old_predicted_data_points = predicted_data_points.map(pt => ({ ...pt, opacity: 42 }));
@@ -154,7 +164,6 @@ function mousePressed() {
   }
   if (isBelowXAxis && data_points.length >= 2) {
     // Add and animate a predicted point if the user clicks below the x-axis
-    console.log("Clicked below x-axis");
     let dataPoint = canvasToData(mouseX, mouseY);
     addAndAnimatePredictedPoint(dataPoint.x);
   }
@@ -217,7 +226,6 @@ function addAndAnimatePredictedPoint(x) {
   let Ysampled = Ybase + eps;
   let dataPoint = createVector(x, Ysampled);
   predicted_data_points.push({ point: dataPoint, progress: 0 });
-  console.log(`Added predicted point: (${dataPoint.x, dataPoint.y}) with noise: ${noise}`);
   clickCount++;
   redraw();
 }
@@ -233,9 +241,18 @@ function drawPoints() {
       stroke(0);
       point(canvasPoint.x, canvasPoint.y);
     }
-    if (showValuesOnHover && isMouseNearPoint(canvasPoint)) {
+    if (showPointLabelsOnHover && isMouseNearPoint(canvasPoint)) {
+      points_with_labels_to_display.push(pt);
+     
+      
+    }
+    if (showAllPointLabelsOnHover ) {
       points_with_labels_to_display.push(pt);
     }
+    if (isMouseNearPoint(canvasPoint)) {
+      wasAnyPointHoveredThisFrame = true;
+    }
+    
     // Draw SVG image
     imageMode(CENTER, CENTER);
     image(svgImage, canvasPoint.x, canvasPoint.y, 32, 32); // Adjust the position as needed
@@ -246,13 +263,13 @@ function drawPointLabels() {
     let pt = points_with_labels_to_display[i];
     let canvasPoint = dataToCanvas(pt.x, pt.y);
     textSize(12);
-    noStroke();
+  
     textFont(fontSourceSansProRegular);
-    // Make text left aligned, but center it under image
-    
-    
+
     textAlign(CENTER, TOP); 
-    fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2], opacityPointLabels);
+  
+    strokeWeight(0);
+    fill(siggan_style.colors.text80);
     text(`y: ${pt.y.toFixed(0)}\nX: ${pt.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 20);
     
     
@@ -265,7 +282,7 @@ easeOut = function(t, easeAmount) {
 };
 
 function drawAnimatedPredictedPoints() {
-  const pointsToDrawLabelsFor = [];
+  
   for (let i = predicted_data_points.length - 1; i >= 0; i--) {
     let pt = predicted_data_points[i];
     let canvasPoint = dataToCanvas(pt.point.x, pt.point.y);
@@ -281,7 +298,7 @@ function drawAnimatedPredictedPoints() {
     }
     // Draw text
     const isAnimating = pt.progress < 1;
-    if (showDataPointValues) {
+    if (allwaysShowPointLabels) {
       textSize(12);
       noStroke();
       textFont(fontSourceSansProRegular);
@@ -299,14 +316,14 @@ function drawAnimatedPredictedPoints() {
       strokeWeight(1);
       line(canvasPoint.x, canvasPoint.y, canvasPoint.x, height - bottom_margin_chart);
       }
-      if (showDataPointValues && !isAnimating) {
+      if (allwaysShowPointLabels && !isAnimating) {
         // Make sure to draw on top of everything
         textSize(12);
         text(`y: ${pt.point.y.toFixed(0)}\nx: ${pt.point.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 10);
       }
 
     }
-    if (showValuesOnHover && isMouseNearPoint(canvasPoint) && !isAnimating) {
+    if (showPointLabelsOnHover && isMouseNearPoint(canvasPoint) && !isAnimating) {
       textSize(12);
       noStroke();
       textFont(fontSourceSansProRegular);
@@ -477,7 +494,6 @@ function displayInitialMessage() {
 }
 
 function drawHintArrow() {
-  console.log("drawHintArrow");
   
 
  
@@ -609,7 +625,6 @@ function handleFileSelect(file) {
     };
     reader.readAsText(file.file);
   } else {
-    console.error('Not a valid text file.');
   }
 }
 
