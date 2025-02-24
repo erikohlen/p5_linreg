@@ -16,9 +16,10 @@ const noise_factor = 1.2; // Adjusted noise factor
 // UI config
 const canvasWidth = 1000;
 const canvasHeight = 800;
-const showDataPointValues = true;
+const showDataPointValues = false;
+const showValuesOnHover = false;
 const showDataPointImage = false;
-const showDataPointSimplePoint = true;
+const showDataPointSimplePoint = false;
 const usePredictedPoints = true;
 const predictedPointAnimationSpeed = 0.02;
 const predictedPointDelayBeforeAnimation = 2;
@@ -55,11 +56,13 @@ const siggan_style = {
 let minX = 0;
 let maxX = 100;
 let minY = 0;
-let maxY = 200;
+let maxY = 100;
 let heldaneFont;
 let data_points = [];
 let predicted_data_points = [];
 let old_predicted_data_points = [];
+let points_with_labels_to_display = [];
+let predicted_points_with_labels_to_display = [];
 let m = 0;
 let b = 0;
 let clickCount = 0;
@@ -67,6 +70,9 @@ let svgImage;
 let svgImage2;
 let opacityPointLabels = 256;
 let correlation = 0;
+let hoverDelayFrames = 60;
+let hoverDelayCounter = 0;
+
 
 function setup() {
   createCanvas(canvasWidth, canvasHeight);
@@ -100,6 +106,10 @@ function draw() {
   drawPoints();
   drawAnimatedPredictedPoints();
   drawOldPredictedPoints();
+  drawPointLabels();
+  
+
+  
   if (data_points.length === 0) {
     displayInitialMessage();
   }
@@ -111,14 +121,16 @@ function draw() {
   if (clickCount >= 5) {
     displayHint();
   }
-  if (clickCount >= 10) {
+  if (clickCount >= 10 && !showValuesOnHover) {
     if (opacityPointLabels > 0) {
       opacityPointLabels -= 2;
     }
   }
-
   if(devMode) {
     drawHintArrow();
+  }
+  if (hoverDelayCounter < hoverDelayFrames ) {
+    hoverDelayCounter++;
   }
 }
 
@@ -210,6 +222,7 @@ function addAndAnimatePredictedPoint(x) {
   redraw();
 }
 
+
 function drawPoints() {
   for (let i = 0; i < data_points.length; i++) {
     let pt = data_points[i];
@@ -220,20 +233,30 @@ function drawPoints() {
       stroke(0);
       point(canvasPoint.x, canvasPoint.y);
     }
-    // Draw text
-    if (showDataPointValues) {
-      textSize(12);
-      noStroke();
-      textFont(fontSourceSansProRegular);
-      
-      textAlign(CENTER, TOP);
-      // use opacity of from variable opacityPointLabels
-      fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2],opacityPointLabels);
-      text(`y: ${pt.y.toFixed(0)}\nX: ${pt.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 10);
+    if (showValuesOnHover && isMouseNearPoint(canvasPoint)) {
+      points_with_labels_to_display.push(pt);
     }
     // Draw SVG image
     imageMode(CENTER, CENTER);
-    image(svgImage, canvasPoint.x, canvasPoint.y , 32, 32); // Adjust the position as needed
+    image(svgImage, canvasPoint.x, canvasPoint.y, 32, 32); // Adjust the position as needed
+  }
+}
+function drawPointLabels() {
+  for (let i = 0; i < points_with_labels_to_display.length; i++) {
+    let pt = points_with_labels_to_display[i];
+    let canvasPoint = dataToCanvas(pt.x, pt.y);
+    textSize(12);
+    noStroke();
+    textFont(fontSourceSansProRegular);
+    // Make text left aligned, but center it under image
+    
+    
+    textAlign(CENTER, TOP); 
+    fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2], opacityPointLabels);
+    text(`y: ${pt.y.toFixed(0)}\nX: ${pt.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 20);
+    
+    
+
   }
 }
 
@@ -242,6 +265,7 @@ easeOut = function(t, easeAmount) {
 };
 
 function drawAnimatedPredictedPoints() {
+  const pointsToDrawLabelsFor = [];
   for (let i = predicted_data_points.length - 1; i >= 0; i--) {
     let pt = predicted_data_points[i];
     let canvasPoint = dataToCanvas(pt.point.x, pt.point.y);
@@ -256,6 +280,7 @@ function drawAnimatedPredictedPoints() {
       point(canvasPoint.x, currentY);
     }
     // Draw text
+    const isAnimating = pt.progress < 1;
     if (showDataPointValues) {
       textSize(12);
       noStroke();
@@ -266,15 +291,28 @@ function drawAnimatedPredictedPoints() {
       fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2], opacityPredicted);
       textAlign(CENTER, TOP);
       // Check if it has reached final position
-      const isAnimating = pt.progress < 1;
       if (isAnimating) {
         textSize(12);
         text(`y: ?  \nx: ${pt.point.x.toFixed(0)}`, canvasPoint.x, currentY + 10);
+        // Draw grey line from point to x-axis
+      stroke(siggan_style.colors.line);
+      strokeWeight(1);
+      line(canvasPoint.x, canvasPoint.y, canvasPoint.x, height - bottom_margin_chart);
       }
-      if (!isAnimating) {
+      if (showDataPointValues && !isAnimating) {
+        // Make sure to draw on top of everything
         textSize(12);
         text(`y: ${pt.point.y.toFixed(0)}\nx: ${pt.point.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 10);
       }
+
+    }
+    if (showValuesOnHover && isMouseNearPoint(canvasPoint) && !isAnimating) {
+      textSize(12);
+      noStroke();
+      textFont(fontSourceSansProRegular);
+      textAlign(CENTER, TOP);
+      fill(siggan_style.colors.text80.levels[0], siggan_style.colors.text80.levels[1], siggan_style.colors.text80.levels[2], opacityPointLabels);
+      text(`y: ${pt.point.y.toFixed(0)}\nX: ${pt.point.x.toFixed(0)}`, canvasPoint.x, canvasPoint.y + 20);
     }
     // Draw SVG image
     imageMode(CENTER, CENTER);
@@ -284,6 +322,9 @@ function drawAnimatedPredictedPoints() {
       pt.progress = 1; // Ensure the progress does not exceed 1
     }
   }
+  
+
+
 }
 
 function drawOldPredictedPoints() {
@@ -604,3 +645,9 @@ function parseCSVData(csvData) {
 
   redraw();
 }
+
+function isMouseNearPoint(canvasPoint, threshold = 32) {
+  return dist(mouseX, mouseY, canvasPoint.x, canvasPoint.y) < threshold;
+}
+
+
