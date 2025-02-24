@@ -354,6 +354,7 @@ function drawLine() {
   canvasPoint1.y = constrain(canvasPoint1.y, top_margin_chart, height - bottom_margin_chart);
   canvasPoint2.x = constrain(canvasPoint2.x, left_margin_chart, width - right_margin_chart);
   canvasPoint2.y = constrain(canvasPoint2.y, top_margin_chart, height - bottom_margin_chart);
+  
   // Draw
   stroke(siggan_style.colors.line);
   strokeWeight(2);
