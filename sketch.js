@@ -78,16 +78,17 @@ function setup() {
   svgImage = loadImage('assets/johnny.svg');
   svgImage2 = loadImage('assets/johnny_orange.svg');
 
-
   // Add two random points for testing the linear regression
   if (devMode) {
     data_points.push(createVector(40, 120));
     data_points.push(createVector(76, 167));
-    
-
-
   }
-  
+
+  // Create file input element
+  const fileInput = createFileInput(handleFileSelect);
+  fileInput.position(10, 10);
+   // Adjust the position as needed
+
   redraw();
 }
 
@@ -117,11 +118,7 @@ function draw() {
   if(devMode) {
     drawHintArrow();
   }
-  
-   
 }
-
-
 
 function mousePressed() {
   const isInsideCanvas = mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height;
@@ -206,7 +203,7 @@ function addAndAnimatePredictedPoint(x) {
   let Ysampled = Ybase + eps;
   let dataPoint = createVector(x, Ysampled);
   predicted_data_points.push({ point: dataPoint, progress: 0 });
-  console.log(`Added predicted point: (${dataPoint.x}, ${dataPoint.y}) with noise: ${noise}`);
+  console.log(`Added predicted point: (${dataPoint.x, dataPoint.y}) with noise: ${noise}`);
   clickCount++;
   redraw();
 }
@@ -555,4 +552,33 @@ function canvasToData(x_pos, y_pos) {
   let x = map(x_pos, 50, width - 50, minX, maxX);
   let y = map(y_pos, height - 50, 50, minY, maxY);
   return createVector(x, y);
+}
+
+function handleFileSelect(file) {
+  if (file.type === 'text') {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const csvData = e.target.result;
+      parseCSVData(csvData);
+    };
+    reader.readAsText(file.file);
+  } else {
+    console.error('Not a valid text file.');
+  }
+}
+
+function parseCSVData(csvData) {
+  const rows = csvData.split('\n');
+  data_points = []; // Clear existing data points
+  for (let row of rows) {
+    const cols = row.split(',');
+    if (cols.length === 2) {
+      const x = parseFloat(cols[0]);
+      const y = parseFloat(cols[1]);
+      if (!isNaN(x) && !isNaN(y)) {
+        data_points.push(createVector(x, y));
+      }
+    }
+  }
+  redraw();
 }
